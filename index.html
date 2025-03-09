@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Buscar Imágenes y Videos - Pexels API</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 20px;
+            background-image: url('https://www.tuexperto.com/wp-content/uploads/2017/10/fondo-de-pantalla-paisaje.jpg');
+            background-size: cover;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            background-position: center;
+            transition: background-color 0.5s, background-image 0.5s;
+            color: #fff;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+        }
+
+        .search-bar {
+            margin-bottom: 20px;
+        }
+
+        #searchInput {
+            padding: 10px;
+            width: 300px;
+            border: none;
+            border-radius: 25px;
+            background-color: rgba(255, 255, 255, 0.2);
+            color: #fff;
+            outline: none;
+            transition: background-color 0.3s;
+        }
+
+        #searchInput::placeholder {
+            color: #ddd;
+        }
+
+        #searchInput:focus {
+            background-color: rgba(255, 255, 255, 0.4);
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 25px;
+            background-color: #28a745;
+            color: #fff;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #218838;
+        }
+
+        #volverBtn {
+            display: none;
+            background: url('https://static.vecteezy.com/system/resources/previews/010/151/174/original/house-and-home-icon-symbol-sign-free-png.png') no-repeat center center;
+            background-size: contain;
+            width: 50px;
+            height: 50px;
+            border: none;
+            cursor: pointer;
+            outline: none;
+            position: absolute;
+            top: 20px;
+            left: 20px;
+        }
+
+        .gallery {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .gallery img, .gallery video {
+            width: 300px;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 8px;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+            position: relative;
+            transition: transform 0.3s;
+        }
+
+        .gallery img:hover, .gallery video:hover {
+            transform: scale(1.05);
+        }
+
+        .download-button {
+            display: block;
+            text-align: center;
+            margin-top: 5px;
+            text-decoration: none;
+            background-color: rgba(0, 0, 0, 0.5);
+            color: #fff;
+            padding: 5px 10px;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+
+        .download-button:hover {
+            background-color: rgba(0, 0, 0, 0.8);
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .gallery img, .gallery video {
+                width: 100%;
+                height: auto;
+            }
+
+            .gallery {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<h1>Buscar Imágenes y Videos 🌄🎥</h1>
+<button id="volverBtn" onclick="volverABuscar()" title="Volver a Buscar"></button>
+<div class="search-bar" id="searchSection">
+    <input type="text" id="searchInput" placeholder="Escribe una palabra clave..." autocomplete="off">
+    <button onclick="buscar()">Buscar</button>
+</div>
+<div class="gallery" id="gallery"></div>
+
+<script>
+    const apiKey = 'LKsG94UmuLwJm6iKkxWwLYhl77WrN9wLuCcJPkSTcF9uq8Z6tL0TJWIH';
+
+    async function descargarImagen(url, nombre) {
+        try {
+            const response = await fetch(url);
+            const blob = await response.blob();
+            const urlBlob = URL.createObjectURL(blob);
+
+            const link = document.createElement('a');
+            link.href = urlBlob;
+            link.download = nombre || 'imagen.jpg';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            setTimeout(() => URL.revokeObjectURL(urlBlob), 1000);
+        } catch (error) {
+            console.log('Error al descargar la imagen:', error);
+        }
+    }
+
+    function volverABuscar() {
+        document.getElementById('searchSection').style.display = 'block';
+        document.getElementById('volverBtn').style.display = 'none';
+        document.getElementById('gallery').innerHTML = '';
+        document.body.style.backgroundImage = 'url("https://www.tuexperto.com/wp-content/uploads/2017/10/fondo-de-pantalla-paisaje.jpg")';
+        document.body.style.backgroundColor = 'transparent';
+    }
+
+    async function buscar() {
+        const palabraClave = document.getElementById('searchInput').value.trim();
+        if (palabraClave === '') {
+            alert('Escribe una palabra clave para buscar.');
+            return;
+        }
+
+        document.body.style.backgroundImage = 'none';
+        document.body.style.backgroundColor = '#ff6f61';
+        document.getElementById('searchSection').style.display = 'none';
+        document.getElementById('volverBtn').style.display = 'inline-block';
+
+        const urlImagenes = `https://api.pexels.com/v1/search?query=${encodeURIComponent(palabraClave)}&per_page=50`;
+        const urlVideos = `https://api.pexels.com/videos/search?query=${encodeURIComponent(palabraClave)}&per_page=20`;
+
+        const opciones = { 
+            method: 'GET',
+            headers: { Authorization: apiKey }
+        };
+
+        try {
+            const [resImagenes, resVideos] = await Promise.all([
+                fetch(urlImagenes, opciones),
+                fetch(urlVideos, opciones)
+            ]);
+
+            if (!resImagenes.ok || !resVideos.ok) throw new Error('Error en la solicitud');
+
+            const dataImagenes = await resImagenes.json();
+            const dataVideos = await resVideos.json();
+            
+            const gallery = document.getElementById('gallery');
+            gallery.innerHTML = '';  
+
+            dataImagenes.photos.forEach(photo => {
+                const imgContainer = document.createElement('div');
+                imgContainer.style.position = 'relative';
+
+                const img = document.createElement('img');
+                img.src = photo.src.medium;
+                img.alt = `Imagen por ${photo.photographer}`;
+
+                const downloadLink = document.createElement('button');
+                downloadLink.className = 'download-button';
+                downloadLink.textContent = 'Descargar Imagen';
+                downloadLink.onclick = () => descargarImagen(photo.src.original, `${palabraClave}.jpg`);
+
+                imgContainer.appendChild(img);
+                imgContainer.appendChild(downloadLink);
+                gallery.appendChild(imgContainer);
+            });
+
+            dataVideos.videos.forEach(video => {
+                const videoContainer = document.createElement('div');
+                videoContainer.style.position = 'relative';
+
+                const vid = document.createElement('video');
+                vid.src = video.video_files[0].link;
+                vid.controls = true;
+
+                const downloadLink = document.createElement('a');
+                downloadLink.href = video.video_files[0].link;
+                downloadLink.download = `${palabraClave}.mp4`;
+                downloadLink.className = 'download-button';
+                downloadLink.textContent = 'Descargar Video';
+
+                videoContainer.appendChild(vid);
+                videoContainer.appendChild(downloadLink);
+                gallery.appendChild(videoContainer);
+            });
+
+        } catch (error) {
+            console.log('Error:', error);
+            alert('Hubo un error al buscar. Revisa tu API Key o intenta más tarde.');
+        }
+    }
+</script>
+
+</body>
+</html>
